@@ -6,7 +6,7 @@
 ---
 Охотник (Hunter) is a simple Adversary Simulation tool developed for achieves stealth through API unhooking, direct and indirect syscalls, Event Tracing for Windows (ETW) suppression, process hollowing, stack spoofing, polymorphic encryption, and comprehensive anti-analysis mechanisms. It effectively bypasses userland hooking, kernel callbacks, behavioral analysis, and forensic detection. Drawing from real world malware and (APT) methodologies.
 
-NOTE: This Project for simulation only and still under development.
+NOTE: There are still features to be added. The project is still under development.
 
 ![photo_2025-04-15_16-37-56](https://github.com/user-attachments/assets/2c6ceabb-c8ee-4ed6-9f8f-91cc06a7f091)
 
