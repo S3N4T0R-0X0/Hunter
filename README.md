@@ -642,6 +642,9 @@ public:
 ## 🛠️ Building & Usage
 Build Example (Kali Linux Cross Compile)
 ```
+sudo ./requirements.sh
+```
+```
 x86_64-w64-mingw32-g++ -O2 -s -I/usr/share/mingw-w64/include/ \
 -o hunter.exe Охотник_killer.cpp \
 -lntdll -lshlwapi -static-libgcc -static-libstdc++ \
