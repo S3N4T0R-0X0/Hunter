@@ -189,7 +189,6 @@ public:
         NTSTATUS result = STATUS_UNSUCCESSFUL;
         DWORD syscall_num = it->second;
 
-        // Use standard C++ instead of inline asm
         result = ((NTSTATUS(*)(...))GetProcAddress(GetModuleHandleA("ntdll.dll"), function_name))(args);
         va_end(args);
         return result;
